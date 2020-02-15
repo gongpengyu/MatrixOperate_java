@@ -6,6 +6,22 @@ package com.scarecrow;
 public class MatrixOperate {
 
     /**
+     * 功能：创建单位矩阵
+     * 参数：n,方阵的维数
+     * 返回值：对应大小的单位阵*/
+    public static double[][] getUnitM(int n){
+        if(n < 1){
+            return null;
+        }else{
+            double[][] unitM = new double[n][n];
+            for(int i=0;i < unitM.length;i++){
+                unitM[i][i] = 1;
+            }
+            return unitM;
+        }
+    }
+
+    /**
      * 功能说明：复制矩阵中元素
      * 参数：source，待复制的矩阵
      * 返回值，复制后的矩阵*/
@@ -74,6 +90,7 @@ public class MatrixOperate {
                     for(int k=0; k < a1[0].length; k++){
                         newM[i][j] += a1[i][k] * a2[k][j];
                     }
+                    newM[i][j] = Math.round(newM[i][j]*1000)*0.001;
                 }
             }
             return newM;
@@ -81,10 +98,11 @@ public class MatrixOperate {
     }
 
     /**
-     * 功能说明：行列式的计算
+     * 功能说明：行列式的计算,不改变输入矩阵
      * 参数：a1(nxn)
      * 返回值：行列式的值*/
-    public static double getDet(double[][] matrix){
+    public static double getDet(double[][] a1){
+        double[][] matrix = copyMatrix(a1);
 
         if(matrix == null || matrix.length != matrix[0].length){
             System.out.println("Matrix:format error!");
@@ -144,14 +162,16 @@ public class MatrixOperate {
     }
 
     /**
-     * 功能说明：矩阵的倒置
+     * 功能说明：矩阵的倒置,不改变原矩阵
      * 参数：a1(ixj)
-     * 返回值：无，直接对数组进行操作
+     * 返回值：转置后的矩阵
      * */
-    public static void transportM(double[][] a1){
+    public static double[][] transportM(double[][] source){
+        double[][] a1 = copyMatrix(source);
+
         if(a1 == null){
             System.out.println("Matrix:null");
-            return;
+            return null;
         }
 
         //根据对角进行交换元素
@@ -162,6 +182,69 @@ public class MatrixOperate {
                 a1[i][j] = a1[j][i];
                 a1[j][i] = temp;
             }
+        return a1;
+    }
+
+    /**
+     * 功能：计算逆矩阵
+     * 参数：a1(nxn)
+     * 返回值：新的逆矩阵
+     * 说明：采用初等变换计算*/
+    public static double[][] getInvM(double[][] source){
+        double[][] a1 = copyMatrix(source);
+        if(a1 == null || a1.length != a1[0].length){
+            System.out.println("Matrix:null or format problem");
+            return null;
+        }
+
+        double det = MatrixOperate.getDet(a1);
+        if(det == 0.0 || det == Double.NaN) {
+            System.out.println("Matrix:irreversible");
+            return null;
+        }else{
+            double[][] unitM = getUnitM(source.length);
+            double temp = 0.0;
+            //先行变换成上三角矩阵
+            for(int j=0; j < a1[0].length-1;j++){
+                for(int i=j+1;i < a1.length;i++){
+                    temp = a1[i][j]/a1[j][j];
+                    for(int k=0;k < a1[0].length;k++){
+                        a1[i][k] = a1[i][k] - a1[j][k]*temp;
+                        //四舍五入，保留3位小数
+                        a1[i][k] = Math.round(a1[i][k]*1000)*0.001;
+
+                        unitM[i][k] = unitM[i][k] - unitM[j][k]*temp;
+                        unitM[i][k] = Math.round(unitM[i][k]*1000)*0.001;
+                    }
+                }
+            }
+            //再行变换为对角矩阵
+            for(int j=a1[0].length-1;j>0;j--){
+                for(int i=j-1;i>=0;i--){
+                    temp = a1[i][j]/a1[j][j];
+                    for(int k=0;k < a1[0].length;k++){
+                        a1[i][k]=a1[i][k] - a1[j][k]*temp;
+                        a1[i][k] = Math.round(a1[i][k]*1000)*0.001;
+
+                        unitM[i][k] = unitM[i][k] - unitM[j][k]*temp;
+                        unitM[i][k] = Math.round(unitM[i][k]*1000)*0.001;
+                    }
+                }
+            }
+
+            //化为单位矩阵
+            for(int i=0;i < a1.length;i++) {
+                temp = 1 / a1[i][i];
+                for (int k = 0; k < a1[0].length; k++) {
+                    a1[i][k] = a1[i][k] * temp;
+                    a1[i][k] = Math.round(a1[i][k] * 1000) * 0.001;
+                    unitM[i][k] = unitM[i][k] * temp;
+                    unitM[i][k] = Math.round(unitM[i][k] * 1000) * 0.001;
+
+                }
+            }
+            return unitM;
+        }
     }
 
     /**
@@ -178,6 +261,8 @@ public class MatrixOperate {
     }
 
     public static void main(String[] args){
+//        double test = 23.336445;
+//        System.out.println("test:"+Math.round(test*100)*0.01);
 //        double[][] a1 = {
 //                {1,3,4},
 //                {2,4,0}
@@ -189,16 +274,18 @@ public class MatrixOperate {
 //        };
 
         double[][] a1 = {
-                {1,0,-3,-6},
-                {2,-5,1,1},
-                {0,-1,2,2},
-                {1,-7,4,6}
+                {1,3,6},
+                {0,1,-3},
+                {0,0,1}
         };
-        System.out.println("转置前：");
+        System.out.println("原矩阵前：");
         MatrixOperate.printM(a1);
-        MatrixOperate.transportM(a1);
-        System.out.println("转置后：");
-        MatrixOperate.printM(a1);
+        System.out.println("逆矩阵后：");
+        double[][] invA1 = MatrixOperate.getInvM(a1);
+        MatrixOperate.printM(invA1);
+        System.out.println("二者相乘：");
+        double[][] aXinvM = MatrixOperate.multiplyMatrix(a1,invA1);
+        MatrixOperate.printM(aXinvM);
 
 //        double[][] a2 = MatrixOperate.copyMatrix(a1);
 //
